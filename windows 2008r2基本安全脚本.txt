@@ -1,0 +1,175 @@
+rem ::::::::::::::::::::::::::::::以下为服务器安全设置::::::::::::::::::::::::::::::::::::::::::::::::::::::
+::Author:xiaoxiao
+
+rem WIN2008游戏服务器服务启动项
+sc config spooler start= disabled & net stop "spooler"
+sc config lmhosts start= disabled & net stop lmhosts
+sc config LanmanServer start= disabled & net stop LanmanServer
+sc config RemoteRegistry start= disabled & net stop RemoteRegistry
+sc config Browser start= disabled & net stop Browser
+sc config Dhcp start= disabled & net stop Dhcp
+sc config upnphost start= disabled & net stop upnphost
+sc config RasMan start= disabled & net stop RasMan
+sc config TapiSrv start= disabled & net stop TapiSrv
+sc config RemoteAccess start= disabled & net stop RemoteAccess
+sc config RasAuto start= disabled & net stop RasAuto
+sc config WinHttpAutoProxySvc= disabled & net stop WinHttpAutoProxySvc
+sc config MpsSvc start= disabled & net stop MpsSvc
+sc config W32Time start= auto & net start W32Time
+
+REM关闭window2008快速响应程序
+echo Windows Registry Editor Version 5.00 >error.reg 
+echo [HKEY_CURRENT_USER\Software\Microsoft\Windows\Windows Error Reporting] >>error.reg
+echo "DontShowUI"=dword:1 >>error.reg
+regedit /s error.reg
+del error.reg
+
+REM关闭高危端口TCP 135 139 445
+echo  Windows Registry Editor Version 5.00 >>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\NetBIOS\Parameters]  >>1.reg
+echo "SMBDeviceEnabled"=dword:00000000 >>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\lanmanserver\parameters] >>1.reg
+echo "AutoShareServer"=dword:00000000 >>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa] >>1.reg
+echo "restrictanonymous"=dword:00000001 >>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\LanmanServer\Parameters] >>1.reg
+echo "restrictanonymous"=dword:00000001 >>1.reg
+
+REM 对匿名连接进行限制
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa] >>1.reg
+echo "restrictanonymous"=dword:00000001 >>1.reg
+
+REM 关闭默认共享
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\lanmanserver\parameters] >>1.reg
+echo "Autoshareserver"=dword:00000000 >>1.reg
+echo "AutoSharewks"=dword:00000000 >>1.reg
+
+REM  重启不显示用户名
+echo [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\policies\system] >>1.reg
+echo "dontdisplaylastusername"=dword:00000001 >>1.reg
+
+rem 拒绝everyone共享
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\LanmanServer\Parameters]>>1.reg
+echo "restrictanonymous"=dword:00000001 >>1.reg
+
+rem 关闭自动播放
+echo [HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer] >>1.reg
+echo "NoDriveTypeAutoRun"=dword:000000ff >>1.reg
+regedit /s 1.reg
+del 1.reg 
+
+rem 开启服务器远程端口(8888)
+echo Windows Registry Editor Version 5.00>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server]>>1.reg
+echo "fDenyTSConnections"=dword:00000000>>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\Wds\rdpwd\Tds\tcp]>>1.reg
+echo "portNumber"=dword:000022b8>>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp]>>1.reg
+echo "portNumber"=dword:000022b8>>1.reg
+regedit /s 1.reg
+del 1.reg
+
+
+rem 以下是事件日志部份
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Eventlog\Application]>>1.reg
+echo "MaxSize"=dword:01000000 >>1.reg
+echo "Retention"=dword:00000000 >>1.reg
+
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Eventlog\Security]>>1.reg
+echo "MaxSize"=dword:01000000 >>1.reg
+echo "Retention"=dword:00000000 >>1.reg
+
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Eventlog\System]>>1.reg
+echo "MaxSize"=dword:01000000 >>1.reg
+echo "Retention"=dword:00000000 >>1.reg
+regedit /s 1.reg
+del 1.reg
+
+rem 抗DOS
+echo Windows Registry Editor Version 5.00 >>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters] >>1.reg
+echo "SynAttackProtect"=dword:00000002 >>1.reg
+echo "EnablePMTUDiscovery"=dword:00000000 >>1.reg
+echo "NoNameReleaseOnDemand"=dword:00000001 >>1.reg
+echo "EnableDeadGWDetect"=dword:00000000 >>1.reg
+echo "EnableICMPRedirects"=dword:00000000 >>1.reg
+echo "KeepAliveTime"=dword:00300000 >>1.reg
+echo "PerformRouterDiscovery"=dword:00000000 >>1.reg
+echo "TcpMaxConnectResponseRetransmissions"=dword:00000002 >>1.reg
+echo "TcpMaxHalfOpen"=dword:00000100 >>1.reg
+echo "TcpMaxHalfOpenRetried"=dword:00000080 >>1.reg
+echo "TcpMaxPortsExhauted"=dword:00000001 >>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\NetBt\Parameters] >>1.reg
+echo "NoNamereleaseOnDemand"=dword:00000001 >>1.reg
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters\Interface] >>1.reg
+echo "PerformRouterdiscovery"=dword:00000000 >>1.reg
+regedit /s 1.reg
+del 1.reg
+
+rem 配置防御SYN攻击
+echo [HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services]>>1.reg
+echo "SynAttackProtect"=dword:00000002>>1.reg
+echo "TcpMaxPortsExhausted"=dword:00000005>>1.reg
+echo "TcpMaxHalfOpen"=dword:000001f4>>1.reg
+echo "TcpMaxHalfOpenRetried"=dword:00000190>>1.reg
+regedit /s 1.reg
+del 1.reg
+
+
+
+
+rem 重命名guest用户,并禁用
+net user guest /active:no
+wmic useraccount where name='guest' call Rename guestt
+
+REM 优化策略
+echo 优化组策略安全
+rem 启用账户锁定策略 在本地安全策略中设置账户锁定策略，账户锁定阀值设为30次，账户锁定时间设为30分钟，复位账户锁定计数器设为30分钟之后,密码长度12位以上
+rem echo [Unicode]>>1.reg.inf
+rem echo Unicode=yes>>1.reg.inf
+rem echo [System Access]>>1.reg.inf
+rem echo MaximumPasswordAge = 42>>1.reg.inf
+rem echo MinimumPasswordLength = 12>>1.reg.inf
+rem echo LockoutBadCount = 30>>1.reg.inf
+rem echo ResetLockoutCount = 30>>1.reg.inf
+rem echo LockoutDuration = 30>>1.reg.inf
+rem echo [version]>>1.reg.inf
+rem echo signature="$CHICAGO$">>1.reg.inf
+rem secedit /configure /db 1.reg.sdb /cfg 1.reg.inf /quiet
+rem del 1.reg.inf
+rem del 1.reg.sdb
+rem gpupdate /force
+
+
+::rem本地审核策略
+echo [Unicode]>>1.reg.inf
+echo Unicode=yes>>1.reg.inf
+echo [System Access]>>1.reg.inf
+echo [Event Audit] >>1.reg.inf
+echo AuditSystemEvents = 3 >>1.reg.inf
+echo AuditLogonEvents = 3 >>1.reg.inf
+echo AuditObjectAccess = 3 >>1.reg.inf
+echo AuditPrivilegeUse = 3 >>1.reg.nf
+echo AuditPolicyChange = 3 >>1.reg.nf
+echo AuditAccountManage = 3 >>1.reg.inf
+echo AuditProcessTracking = 3 >>1.reg.inf
+echo AuditDSAccess = 3 >>1.reg.inf
+echo AuditAccountLogon = 3 >>1.reg.inf
+echo [Privilege Rights] >>1.reg.inf
+echo SeRemoteShutdownPrivilege = Administrators >>1.reg.inf 
+echo SeShutdownPrivilege=Administrators >>1.reg.inf 
+echo SeTakeOwnershipPrivilege = Administrators >>1.reg.inf 
+echo [Version] >>1.reg.inf
+echo signature="$CHICAGO$" >>1.reg.inf
+echo Revision=1 >>1.reg.inf
+secedit /configure /db 1.reg.sdb /cfg 1.reg.inf /log 1.reg.log /overwrite /quiet
+del 1.*
+gpupdate /force
+
+
+
+
+https://downloads.mariadb.org/interstitial/mariadb-10.0.2/kvm-tarbake-jaunty-x86/mariadb-10.0.2.tar.gz/from/http:/mirrors.scie.in/mariadb?serve
+http://zhouyuqin.blog.51cto.com/5132926/1130827
+http://isadba.com/?p=374
+http://dusu.sinaapp.com/2013_05/view_130.html
