@@ -1,0 +1,29 @@
+---
+- name: configure webserver with nginx ssl
+  host: webserver
+  user: root
+  vars:
+    key_file: /etc/nginx/ssl/nginx.key
+    cert_file: /etc/nginx/ssl/nginx.crt
+    conf_file: /etc/nginx/site-available/default
+    server_name: __
+  tasks:
+    - name: install nginx
+      apt: name=nginx update_cache=yes
+    - name: create directories for ssl certificates
+      file: path=/etc/nginx/ssl state=directory
+    - name: copy ssl key
+      copy: src=files/nginx.key dest={{ key_file }} owner=root mode=0600
+      notify: restart nginx
+    - name: copy ssl certificate
+      copy: src=files/nginx.crt dest={{ cert_file }}
+      notify: restart nginx
+    - name: copy nginx cnfigure file
+      template: src=templates/ngnx.conf.j2 dest={{ conf_file }}
+    - name: enable conbfiguration
+      file: dest=/etc/nginx/sites-enabled/default src={{ conf_file }} state=link
+      notify: restart nginx
+
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restared

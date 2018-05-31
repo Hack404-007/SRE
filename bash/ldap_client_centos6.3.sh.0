@@ -1,0 +1,116 @@
+#!/bin/bash
+export PATH=$PATH:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin
+
+#####################################main ##################################
+echo "#############`date`################START...#################################"
+curdir=`dirname $0`
+if [ $curdir = '.' ];then
+   curdir=`pwd`
+fi
+tmpdir=${curdir}/etc
+mkdir -p ${tmpdir}
+cd ${tmpdir}
+datestr="`date +%m%d`"
+##判断系统是否是centos6.3，如果不是，提示后退出.CentOS release 6.3 (Final)
+sysfile=/etc/redhat-release
+if [ ! -f ${sysfile} ]; then
+  echo "/etc/redhat-release Flag File not Exists.unkown system."
+  exit -1
+fi
+sysinfonum=`cat /etc/redhat-release|grep "CentOS release 6."|wc -l`
+
+if [ ${sysinfonum} -ne 1 ]; then
+  echo "`date`当前系统不符合该脚本安装要求,请手工处理或者检查是否判断有误,当前系统为:`cat /etc/redhat-release`"
+  exit 1
+fi
+
+##检测用户是否存在.
+idnum=`id user00|grep 10003|wc -l`
+if [ ${idnum} -eq 1 ]; then
+  echo "###`date`###LDAP CLIENT 已经安装,不需要重复执行."
+  exit 1
+fi
+#0.增加hosts
+ldapnum=`grep -w "113.31.16.203  ldap01.51yzx.com" /etc/hosts|wc -l`
+if [ ${ldapnum} -ne 1 ]; then 
+  echo "" >>/etc/hosts
+  echo "##ldap server info add. date:`date`	"             >>/etc/hosts
+  echo "113.31.16.203  ldap01.51yzx.com " >>/etc/hosts
+  echo "113.31.16.198  ldap02.51yzx.com " >>/etc/hosts
+  echo "##ldap server info add end."                      >>/etc/hosts
+  echo "" >>/etc/hosts
+else
+  echo "`hostname` 机器可能已经配置LDAP客户端，不需要重复安装或者请手工检查.`date`"
+  exit 1
+fi
+
+#1.安装基本包
+yum install openldap-clients nss-pam-ldapd sudo openssh-clients pam_ldap authconfig -y
+#2.备份可能修改的文件
+cp /etc/sysconfig/authconfig     /etc/sysconfig/authconfig.orig.${datestr}
+cp /etc/nslcd.conf               /etc/nslcd.conf.orig.${datestr}
+cp /etc/nsswitch.conf            /etc/nsswitch.conf.orig.${datestr}
+cp /etc/pam_ldap.conf            /etc/pam_ldap.conf.orig.${datestr}
+cp /etc/sudo-ldap.conf           /etc/sudo-ldap.conf.orig.${datestr}
+cp /etc/openldap/ldap.conf       /etc/openldap/ldap.conf.orig.${datestr}
+cp /etc/pam.d/password-auth-ac   /etc/pam.d/password-auth-ac.orig.${datestr}
+cp /etc/pam.d/system-auth-ac     /etc/pam.d/system-auth-ac.orig.${datestr}
+
+#使用系统自带配置
+authconfig --updateall --enableldap --enableforcelegacy  --enableldapauth --ldapserver="ldaps://ldap01.51yzx.com ldaps://ldap02.51yzx.com " --ldapbasedn="dc=51yzx,dc=com" --enableldaptls --enableldapstarttls 
+##文件替换使用ftp下载方式操作.
+##A. /etc/nsswitch.conf 修改  正行替换，可以重复执行
+sudoernum=`grep sudoer /etc/nsswitch.conf |wc -l`
+if [ ${sudoernum} -eq 0 ]; then
+  sed -i '/group:      files ldap/a\sudoers:    ldap'          /etc/nsswitch.conf 
+  sed -i 's/^services:   files*/services:   files ldap/g' /etc/nsswitch.conf 
+fi
+##B./etc/pam.d/password-auth修改增加初次登录创建home目录信息
+##防止重复执行，需要判断是否存在.
+execnum=`cat /etc/pam.d/password-auth|grep "session     optional      pam_mkhomedir.so skel=/etc/skel umask=0077"|wc -l`
+if [ ${execnum} -gt 0 ]; then
+  echo "#####`date`##### /etc/pam.d/password-auth 文件可能已经修改过,不需要重复添加."
+else
+  insertnum=`cat /etc/pam.d/password-auth|grep "session     required      pam_limits.so"|wc -l`
+  ##存在，增加信息
+  if [ ${insertnum} -eq 1 ]; then
+    sed -i '/session     required      pam_limits.so/a\session     optional      pam_mkhomedir.so skel=/etc/skel umask=0077' /etc/pam.d/password-auth
+  fi
+fi
+##C./etc/pam.d/system-auth,末行增加记录配置
+execnum=`cat /etc/pam.d/system-auth|grep "session     required      pam_mkhomedir.so skel=/etc/skel umask=0077"|wc -l`
+if [ ${execnum} -lt 1 ]; then	
+  echo 'session     required      pam_mkhomedir.so skel=/etc/skel umask=0077' >> /etc/pam.d/system-auth
+else
+  echo "#####`date`#####/etc/pam.d/system-auth文件可能已经修改过，不需要重复添加处理."
+fi
+##使用wget方式，需要保证http://113.31.16.198:8889/ldapclient_file/data/etc/可以访问.
+##D. 证书文件下载复制
+cd ${tmpdir}
+wget http://113.31.16.198:8889/ldapclient_file/data/etc/openldap/cacerts/cacert.pem
+cp -f cacert.pem /etc/openldap/cacerts
+##E. /etc/openldap/ldap.conf
+wget http://113.31.16.198:8889/ldapclient_file/data/etc/openldap/ldap.conf
+cp -f ldap.conf /etc/openldap/ldap.conf
+##F. /etc/sudo-ldap.conf
+wget http://113.31.16.198:8889/ldapclient_file/data/etc/sudo-ldap.conf
+cp -f sudo-ldap.conf /etc/sudo-ldap.conf
+##G. /etc/pam_ldap.conf
+wget http://113.31.16.198:8889/ldapclient_file/data/etc/pam_ldap.conf
+cp -f pam_ldap.conf /etc/pam_ldap.conf
+##H./etc/nslcd.conf
+wget http://113.31.16.198:8889/ldapclient_file/data/etc/nslcd.conf
+cp -f nslcd.conf /etc/nslcd.conf
+##重启nslcd服务
+chkconfig --level 345 nslcd on
+/etc/init.d/nslcd restart
+/etc/init.d/crond restart
+##检测用户是否存在.
+idnum=`id user00|grep 10003|wc -l`
+if [ ${idnum} -eq 1 ]; then
+  echo "###`date`###LDAP CLIENT 安装成功.请登陆测试."
+  rm -rf ${tmpdir}
+else
+  echo "###`date`###LDAP CLIENT 安装过程中可能出现问题.请手工检查."
+fi
+echo "#############`date`################END#################################"
