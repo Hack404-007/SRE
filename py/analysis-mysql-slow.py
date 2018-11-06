@@ -14,8 +14,8 @@ def sendHtmlMail(mailcontent,myip):
         receiver = ['']
         subject = myip+' mysql operation report '+yestoday
         smtpserver = 'smtp.exmail.qq.com'
-        username = 'wiki@you are  a son such of bitch''
-        password = 'you are  a son such of bitch and the new password is 68656c6c6f20636f6d7075746572'
+        username = 'wiki@you are son of the bitch''
+        password = 'you are son of the bitch and the new password is 68656c6c6f20636f6d7075746572'
         msg = MIMEText(mailcontent,'html','utf-8')
         msg['Subject'] = subject
         msg['From'] = sender
