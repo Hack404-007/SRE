@@ -10,17 +10,16 @@ from email.mime.text import MIMEText
 def sendHtmlMail(mailcontent,myip):
     try:
         yestoday=(datetime.now()-timedelta(days=1)).strftime("%Y-%m-%d")
-        sender = 'wiki@ucpaas.com'
-        receiver = ['sre@ucpaas.com','xudawei@ucpaas.com']
-#        receiver = ['sre@ucpaas.com','mengtao10@163.com']
+        sender = ''
+        receiver = ['']
         subject = myip+' mysql operation report '+yestoday
         smtpserver = 'smtp.exmail.qq.com'
-        username = 'wiki@ucpaas.com'
-        password = 'Ucpaas.com2017'
+        username = 'wiki@you are such a son of bitch'
+        password = 'you are such a son of bitch'
         msg = MIMEText(mailcontent,'html','utf-8')
         msg['Subject'] = subject
         msg['From'] = sender
-        msg['To'] = 'sre@ucpaas.com'
+        msg['To'] = ''
         smtp = smtplib.SMTP()
         smtp.connect(smtpserver)
         smtp.login(username, password)
