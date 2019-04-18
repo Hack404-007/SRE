@@ -1,0 +1,25 @@
+
+ls -lh ~/.oh-my-zsh/themes
+git clone https://github.com/bhilburn/powerlevel9k.git ~/.oh-my-zsh/custom/themes/powerlevel9k
+ls -lh ~/.oh-my-zsh/custom/themes/powerlevel9k
+vim ~/.zshrc
+git clone https://github.com/gabrielelana/awesome-terminal-fonts
+mkdir -pv ~/.fonts
+cd awesome-terminal-fonts
+cp -R build/* ~/.fonts
+ls ~/.fonts
+fc-cache -fv ~/.fonts
+mkdir -pv ~/.config/fontconfig/conf.d
+cp config/10-symbols.conf ~/.config/fontconfig/conf.d
+source ~/.fonts/*.sh
+vim ~/.zshrc
+
+
+ZSH_THEME="powerlevel9k/powerlevel9k"
+POWERLEVEL9K_PROMPT_ON_NEWLINE=true
+POWERLEVEL9K_MULTILINE_FIRST_PROMPT_PREFIX="↱"
+POWERLEVEL9K_MULTILINE_SECOND_PROMPT_PREFIX="↳ "
+POWERLEVEL9K_PROMPT_ADD_NEWLINE=true
+POWERLEVEL9K_MODE='nerdfont-complete'
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(ssh dir vcs newline status)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=()
